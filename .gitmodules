@@ -2,7 +2,7 @@
 	path = Widgets/uBdead
 	url = https://github.com/WybrenKoelmans/BAR-Widgets.git
 	branch = widgethub
-[submodule "Widgets/time_weighted_team_stats"]
-	path = Widgets/time_weighted_team_stats
-	url = https://github.com/tetrisface/time_weighted_team_stats.git
+[submodule "Widgets/tetrisface"]
+	path = Widgets/tetrisface
+	url = https://github.com/tetrisface/community-widgets.git
 	branch = main
