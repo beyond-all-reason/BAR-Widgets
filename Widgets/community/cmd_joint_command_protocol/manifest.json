@@ -1,0 +1,10 @@
+{
+  "id": "cmd_joint_command_protocol",
+  "version": "1.0.0",
+  "display_name": "Joint Command Protocol",
+  "author": "Vdb",
+  "discord_link": "",
+  "github_link": "https://github.com/Kiwi-Vdb/JCP",
+  "description": "Tournament-focused widget that automatically transfers finished whitelisted units to the player's allied teammate for coordinated 2v2 play.",
+  "last_updated": "2026-07-15T10:45:00.000Z"
+}
