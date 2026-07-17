@@ -1,0 +1,9 @@
+{
+	"id": "gui_juno_impact_range",
+	"display_name": "Juno Impact Range",
+	"author": "Rysica",
+	"discord_link": "https://discord.com/channels/549281623154229250/1527022324191068330",
+	"github_link": "https://github.com/beyond-all-reason/BAR-Widgets/tree/main/Widgets/community/gui_juno_impact_range",
+	"description": "Draws an AOE circle while targeting Juno, and after impact",
+	"last_updated": "2026-07-17T12:00:00.000Z"
+}
