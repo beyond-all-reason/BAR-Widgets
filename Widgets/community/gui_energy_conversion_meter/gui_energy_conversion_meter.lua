@@ -3,7 +3,7 @@ local widget = widget ---@type Widget
 function widget:GetInfo()
     return {
         name = "Energy Conversion Meter",
-        desc = "9-bar meter next to the top bar showing your energy<->converter balance: green center = balanced, bars ramp yellow -> red as the imbalance grows. Right = energy going unconverted (OVERFLOWING), left = converter capacity starved (IDLE CONVERTERS). Severity is relative to your E income; shows the E/s value and a hint label. Energy/converters actively under construction already count as fixed (blueprints don't). Holding 3+ bars for ~5s pops an on-screen alert; pinned at 4 bars it repeats every 20s and the side icon + label pulse red. Ctrl + left-click drag repositions the meter (saved).",
+        desc = "9-bar meter next to the top bar showing your energy<->converter balance: green center = balanced, bars ramp yellow -> red as the imbalance grows. Right = energy going unconverted (Overflowing), left = converter capacity starved (Idle converters). Severity is relative to your E income; shows the E/s value, plus a small hint text at 3+ bars. Energy/converters actively under construction already count as fixed (blueprints don't). Holding 3+ bars for ~5s pops an on-screen alert; pinned at 4 bars it repeats every 20s and the side icon pulses red. Ctrl + left-click drag repositions the meter (saved).",
         author = "Egzothicki",
         date = "July 2026",
         license = "GNU GPL, v2 or later",
@@ -36,6 +36,7 @@ local CONV_STABLE_TICKS = 3 -- polls a mode must hold before the display switche
 -- a traffic-light ramp outward on BOTH sides. Which side tells you WHAT to add
 -- (direction, end icons, text); color only tells you HOW BAD.
 local CONV_OK_COLOR = { 0.35, 1.0, 0.45 } -- center bar while balanced
+local CONV_NEUTRAL_COLOR = { 0.95, 0.95, 0.95 } -- value text while balanced (like the stored-amount numbers)
 local CONV_BAR_COLORS = { -- by bar position 1..4, either side
     { 1.0, 0.85, 0.15 }, -- 1: yellow
     { 1.0, 0.60, 0.10 }, -- 2: orange
@@ -66,7 +67,7 @@ local glTexRect = gl.TexRect
 
 local vsx, vsy = 1920, 1080
 local convText, convColor = nil, CONV_BAR_COLORS[1] -- value line ("+3k")
-local convAction = nil -- action line below, smaller ("OVERFLOWING"/"IDLE CONVERTERS")
+local convAction = nil -- hint text below, smaller ("Overflowing"/"Idle converters"), only shown at |level| >= 3
 local convLevel = 0 -- meter position: -4 (converters starved) .. +4 (energy unconverted)
 local convPos = { x = -9999, y = 0, s = 34, w = 0 }
 local convDrag = nil -- {grabDX, grabDY} while the meter is being Ctrl-dragged
@@ -83,10 +84,11 @@ local conv3LastAt, conv4LastAt = -999, -999
 -- gui_top_bar's overflow flash (fast dt*9 attack, eased ~0.75s decay, ~0.86s/cycle)
 local convBlink, convBlinkDir = 0, true
 
--- end-cap icons: wind (energy) on the IDLE CONVERTERS side, converter on the
--- OVERFLOWING side — engine MAP ICONS (white shapes), with buildpic fallback if
--- the icontypes lookup fails
-local convEnergyIcon, convMakerIcon
+-- end-cap icons mark the PROBLEM side: converter map icon on the Idle
+-- converters side (left), lightning bolt (the top bar's own energy icon) on
+-- the Overflowing side (right); buildpic fallback if the icontypes lookup fails
+local convEnergyIcon = ":l:LuaUI/Images/energy.png"
+local convMakerIcon
 do
     local ok, iconTypes = pcall(VFS.Include, "gamedata/icontypes.lua")
     local function iconOf(name)
@@ -95,7 +97,6 @@ do
         local it = ok and iconTypes and ud.iconType and iconTypes[ud.iconType]
         return (it and it.bitmap and (":l:" .. it.bitmap)) or ("#" .. ud.id)
     end
-    convEnergyIcon = iconOf("armwin") or iconOf("corwin")
     convMakerIcon = iconOf("armmakr") or iconOf("cormakr")
 end
 
@@ -165,9 +166,16 @@ local function PendingEcoRates()
     return pendE, pendCap
 end
 
+-- the top bar's short() format: <= 9999 plain, then k / m — bounded length,
+-- so the value slot can reserve a constant width and never jump
 local function FormatE(v)
-    if string.formatSI then return string.formatSI(math.floor(v)) end
-    return v >= 1000 and string.format("%.1fk", v / 1000) or tostring(math.floor(v))
+    v = math.floor(v)
+    if v > 9999999 then
+        return string.format("%.0fm", v / 1000000)
+    elseif v > 9999 then
+        return string.format("%.0fk", v / 1000)
+    end
+    return tostring(v)
 end
 
 local function TierLevel(v, income, absTiers)
@@ -204,6 +212,15 @@ local function UpdateConversionInfo()
     local pendE, pendCap = PendingEcoRates()
     net = net - pendCap
     idle = idle - pendE
+    -- always-visible value: the dominant imbalance, signed like the meter sides
+    -- (shown even at green/balanced so the number is a permanent fixture)
+    local dom = (net >= idle) and math.max(0, net) or -math.max(0, idle)
+    if dom > -1 and dom < 1 then
+        convText = "0"
+    else
+        convText = (dom > 0 and "+" or "-") .. FormatE(math.abs(dom))
+    end
+
     -- excess only counts when existing converters are already ~saturated (else the
     -- conversion gadget will absorb it by itself once storage passes the slider level);
     -- expense already includes conversion drain, so positive net = true overflow
@@ -226,21 +243,22 @@ local function UpdateConversionInfo()
 
     if convMode == nil or convMode ~= mode then
         if convMode == nil then
-            convText, convAction, convLevel = nil, nil, 0
+            convAction, convLevel = nil, 0
+            convColor = CONV_NEUTRAL_COLOR
         end
-        return -- keep last display while a flip is pending
+        return -- keep last display (except the live value) while a flip is pending
     end
 
     if convMode == "excess" then
         convText = "+" .. FormatE(net)
-        convAction = "OVERFLOWING"
         convLevel = TierLevel(net, emaInc, CONV_ABS_TIERS_EXCESS)
         convColor = CONV_BAR_COLORS[convLevel]
+        convAction = convLevel >= 3 and "Overflowing" or nil
     else
         convText = "-" .. FormatE(idle)
-        convAction = "IDLE CONVERTERS"
         convLevel = -TierLevel(idle, emaInc, CONV_ABS_TIERS_DEFICIT)
         convColor = CONV_BAR_COLORS[-convLevel]
+        convAction = convLevel <= -3 and "Idle converters" or nil
     end
 end
 
@@ -283,6 +301,51 @@ local function UpdateConvNotify()
         convNotifColor = convColor
         Spring.PlaySoundFile("beep4", 0.35, "ui")
     end
+end
+
+-- magnet snapping while Ctrl-dragging: edges stick to other snap-aware widgets
+-- (WG.snapRects peers), the minimap and the top bar when within SNAP_DIST px;
+-- side-by-side placement uses a SNAP_GAP gutter to match the button rows
+local SNAP_KEY = 'energyconvmeter'
+local SNAP_DIST = 10 -- px within which an edge snaps
+local SNAP_GAP = 5 -- gutter when sticking next to something
+local SNAP_NEAR = 40 -- only snap an axis when the other axis roughly overlaps
+local SNAP_GRID = 16 -- fallback grid spacing when nothing else catches an axis
+
+local function SnapPos(x, y, w, h)
+    local rects = {}
+    if WG.snapRects then
+        for k, r in pairs(WG.snapRects) do
+            if k ~= SNAP_KEY then rects[#rects + 1] = r end
+        end
+    end
+    local mpx, mpy, msx, msy = Spring.GetMiniMapGeometry()
+    if msx and msx > 0 then rects[#rects + 1] = { mpx, mpy, mpx + msx, mpy + msy } end
+    local tb = WG['topbar'] and WG['topbar'].GetPosition and WG['topbar'].GetPosition()
+    if tb then rects[#rects + 1] = { tb[1], tb[2], math.min(tb[3] or vsx, vsx), vsy } end
+
+    local bestDX, bestDY
+    for i = 1, #rects do
+        local r = rects[i]
+        if y < r[4] + SNAP_NEAR and y + h > r[2] - SNAP_NEAR then
+            local cands = { r[1], r[3] - w, r[3] + SNAP_GAP, r[1] - w - SNAP_GAP }
+            for j = 1, 4 do
+                local d = cands[j] - x
+                if math.abs(d) <= SNAP_DIST and (not bestDX or math.abs(d) < math.abs(bestDX)) then bestDX = d end
+            end
+        end
+        if x < r[3] + SNAP_NEAR and x + w > r[1] - SNAP_NEAR then
+            local cands = { r[2], r[4] - h, r[4] + SNAP_GAP, r[2] - h - SNAP_GAP }
+            for j = 1, 4 do
+                local d = cands[j] - y
+                if math.abs(d) <= SNAP_DIST and (not bestDY or math.abs(d) < math.abs(bestDY)) then bestDY = d end
+            end
+        end
+    end
+    -- dense-net fallback per axis: free placements still stick to a grid
+    if not bestDX then bestDX = math.floor(x / SNAP_GRID + 0.5) * SNAP_GRID - x end
+    if not bestDY then bestDY = math.floor(y / SNAP_GRID + 0.5) * SNAP_GRID - y end
+    return x + bestDX, y + bestDY
 end
 
 local function UpdatePos()
@@ -384,26 +447,59 @@ function widget:DrawScreen()
     local fs = s * 0.34
     local fs2 = s * 0.26
     local textGap = math.floor(s * 0.22)
-    local textW = convText and math.ceil((gl.GetTextWidth(convText) or 0) * fs) or 0
-    local actionW = convAction and math.ceil((gl.GetTextWidth(convAction) or 0) * fs2) or 0
+    -- top bar's font (Exo2) for the value + banner, glText fallback
+    local f2 = WG['fonts'] and WG['fonts'].getFont and WG['fonts'].getFont(2)
+    -- value slot reserves the widest possible short()-formatted value
+    -- ("+9999k") so the panel width never jumps as the number changes
+    local textW = 0
+    if convText then
+        local sampleW = (f2 and f2:GetTextWidth("+9999k")) or gl.GetTextWidth("+9999k") or 0
+        local curW = (f2 and f2:GetTextWidth(convText)) or gl.GetTextWidth(convText) or 0
+        textW = math.ceil(math.max(sampleW, curW) * fs)
+    end
+    local actionW = convAction and math.ceil(((f2 and f2:GetTextWidth(convAction)) or gl.GetTextWidth(convAction) or 0) * fs2) or 0
     local iconS = math.floor(s * 0.46)
     local iconGap = math.max(2, math.floor(s * 0.06))
-    local iconsW = (convEnergyIcon and (iconS + iconGap) or 0) + (convMakerIcon and (iconS + iconGap) or 0)
+    -- converter icon left (Idle converters side), energy bolt right (Overflowing side)
+    local leftIcon, rightIcon = convMakerIcon, convEnergyIcon
+    local iconsW = (leftIcon and (iconS + iconGap) or 0) + (rightIcon and (iconS + iconGap) or 0)
+    -- top-bar style: same 20-degree trapezoid skew, wide top / narrow bottom
+    -- ("\  /"); the bottom cut eats into the sides, so pad the content extra
+    local sk = WG['topbar'] and WG['topbar'].GetSkewConfig and WG['topbar'].GetSkewConfig()
+    local skew = (sk and sk.useSkew) and { blx = s * sk.skewTan, brx = -(s * sk.skewTan) } or nil
+    local sidePad = skew and math.floor(s * sk.skewTan * 0.7) or 0
     local rowW = iconsW + totalW + (convText and (textGap + textW) or 0)
-    local panelW = pad + math.max(rowW, actionW) + pad
+    local panelW = pad + sidePad + math.max(rowW, actionW) + sidePad + pad
     local x1, y1 = convPos.x, convPos.y
     local fui = WG.FlowUI and WG.FlowUI.Draw
-    if fui and fui.RectRound then
+    if fui and fui.Element then
+        -- the top bar's own element style (incl. its opacity setting)
+        fui.Element(x1, y1, x1 + panelW, y1 + s, 1, 1, 1, 1, 1, 1, 1, 1, nil, nil, nil, nil, nil, skew)
+    elseif fui and fui.RectRound then
         fui.RectRound(x1, y1, x1 + panelW, y1 + s, math.floor(s * 0.16), 1, 1, 1, 1,
             { 0, 0, 0, 0.62 }, { 0.14, 0.14, 0.14, 0.62 })
     else
         glColor(0, 0, 0, 0.55)
         glRect(x1, y1, x1 + panelW, y1 + s)
     end
+
+    -- bar-4 alert: the top bar's exact "wasting" flash — additive red over the
+    -- whole element, alpha 0.1 * blink
+    if (convLevel >= 4 or convLevel <= -4) and fui and fui.RectRound then
+        gl.Blending(GL.SRC_ALPHA, GL.ONE)
+        local cs = (WG.FlowUI and WG.FlowUI.elementCorner) or math.floor(s * 0.16)
+        local fc = { 1, 0, 0, 0.1 * convBlink }
+        if skew and fui.RectRoundQuad then
+            fui.RectRoundQuad(x1, y1, x1 + panelW, y1 + s, cs, 1, 1, 1, 1, fc, fc, skew)
+        else
+            fui.RectRound(x1, y1, x1 + panelW, y1 + s, cs, 1, 1, 1, 1, fc, fc)
+        end
+        gl.Blending(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA)
+    end
     -- top line: [E icon] bars [conv icon] + value; bottom line: action, smaller
     local cyMid = convAction and (y1 + s * 0.66) or (y1 + s * 0.5)
     local barMult = convAction and 0.78 or 1
-    local barsX = x1 + pad + (convEnergyIcon and (iconS + iconGap) or 0)
+    local barsX = x1 + pad + sidePad + (leftIcon and (iconS + iconGap) or 0)
     for i = -4, 4 do
         local bx = barsX + (i + 4) * (barW + barGap)
         local bh = barMult * s * (0.18 + 0.085 * math.abs(i))
@@ -423,41 +519,59 @@ function widget:DrawScreen()
         end
         glRect(bx, cyMid - bh * 0.5, bx + barW, cyMid + bh * 0.5)
     end
-    if convEnergyIcon then
+    if leftIcon then
         if convLevel <= -4 then
             glColor(1, 0.16, 0.12, 0.35 + 0.65 * convBlink) -- bar 4 hit: pulsing red
         else
             glColor(0.85, 0.85, 0.85, 0.9) -- neutral: color means severity only
         end
-        glTexture(convEnergyIcon)
-        glTexRect(x1 + pad, cyMid - iconS * 0.5, x1 + pad + iconS, cyMid + iconS * 0.5)
+        glTexture(leftIcon)
+        glTexRect(x1 + pad + sidePad, cyMid - iconS * 0.5, x1 + pad + sidePad + iconS, cyMid + iconS * 0.5)
         glTexture(false)
     end
-    if convMakerIcon then
+    if rightIcon then
         if convLevel >= 4 then
             glColor(1, 0.16, 0.12, 0.35 + 0.65 * convBlink) -- bar 4 hit: pulsing red
         else
             glColor(0.85, 0.85, 0.85, 0.9) -- neutral: color means severity only
         end
-        glTexture(convMakerIcon)
+        glTexture(rightIcon)
         local ix = barsX + totalW + iconGap
         glTexRect(ix, cyMid - iconS * 0.5, ix + iconS, cyMid + iconS * 0.5)
         glTexture(false)
     end
     if convText then
-        glColor(convColor[1], convColor[2], convColor[3], 0.95)
-        local textX = barsX + totalW + (convMakerIcon and (iconGap + iconS) or 0) + textGap
-        glText(convText, textX, cyMid - fs * 0.36, fs, "o")
+        -- value in the top bar's stored-amount style: Exo2 font, outlined
+        local textX = barsX + totalW + (rightIcon and (iconGap + iconS) or 0) + textGap
+        if f2 then
+            f2:Begin()
+            f2:SetTextColor(convColor[1], convColor[2], convColor[3], 0.95)
+            f2:SetOutlineColor(0, 0, 0, 1)
+            f2:Print(convText, textX, cyMid - fs * 0.36, fs, "o")
+            f2:End()
+        else
+            glColor(convColor[1], convColor[2], convColor[3], 0.95)
+            glText(convText, textX, cyMid - fs * 0.36, fs, "o")
+        end
     end
     if convAction then
-        local a = 0.9
-        if convLevel >= 4 or convLevel <= -4 then
-            a = 0.35 + 0.65 * convBlink -- bar 4 hit: pulse with the icon
+        -- plain hint text, no banner backdrop; always the top bar's
+        -- "Overflowing" yellow (never the red "Wasting" set), never pulsing
+        local bcx = math.floor(x1 + panelW * 0.5)
+        if f2 then
+            f2:Begin()
+            f2:SetTextColor(1, 0.88, 0, 0.95)
+            f2:SetOutlineColor(0.25, 0.16, 0, 0.6)
+            f2:Print(convAction, bcx, y1 + s * 0.07, fs2, "oc")
+            f2:End()
+        else
+            glColor(1, 0.88, 0, 0.95)
+            glText(convAction, bcx, y1 + s * 0.06, fs2, "oc")
         end
-        glColor(convColor[1], convColor[2], convColor[3], a)
-        glText(convAction, x1 + panelW * 0.5, y1 + s * 0.06, fs2, "oc")
     end
     convPos.w = panelW
+    WG.snapRects = WG.snapRects or {}
+    WG.snapRects[SNAP_KEY] = { convPos.x, convPos.y, convPos.x + panelW, convPos.y + s }
 
     -- hover tooltip goes through BAR's tooltip widget (the engine GetTooltip
     -- callin is not rendered as a cursor tooltip); area refreshed every frame
@@ -505,7 +619,9 @@ end
 
 function widget:MouseMove(mx, my)
     if convDrag then
-        convUserPos = { (mx - convDrag[1]) / vsx, (my - convDrag[2]) / vsy }
+        local x, y = SnapPos(mx - convDrag[1], my - convDrag[2],
+            convPos.w > 0 and convPos.w or 200, convPos.s)
+        convUserPos = { x / vsx, y / vsy }
         return true
     end
 end
@@ -538,4 +654,5 @@ function widget:Shutdown()
     if WG['tooltip'] and WG['tooltip'].RemoveTooltip then
         WG['tooltip'].RemoveTooltip('energyconvmeter')
     end
+    if WG.snapRects then WG.snapRects[SNAP_KEY] = nil end
 end
