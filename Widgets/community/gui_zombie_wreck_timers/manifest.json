@@ -1,0 +1,9 @@
+{
+	"id": "gui_zombie_wreck_timers",
+	"version": "1.0.0",
+	"display_name": "Zombie Wreck Timers",
+	"author": "Egzothicki",
+	"discord_link": "https://discord.com/channels/549281623154229250/1113845509891829810/threads/1530224845953175763",
+	"description": "For games with the Zombies modoption. Shows a countdown over every wreck telling you when it will reanimate. From white to purple, then flashing purple in the final seconds. Knows that reclaiming or resurrecting resets the timer, and is honest when it can't know: '?' for wrecks of unknown age, '~' when the wreck spent time out of your vision. Display only.",
+	"last_updated": "2026-08-01T00:00:00.000Z"
+}
