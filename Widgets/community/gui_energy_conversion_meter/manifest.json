@@ -6,5 +6,5 @@
 	"discord_link": "https://discord.com/channels/549281623154229250/1532349057287061604",
 	"github_link": "https://github.com/beyond-all-reason/BAR-Widgets/pull/14",
 	"description": "Draggable 9-bar meter showing your current imbalance in energy production and energy conversion. It alerts you and makes it stupid simple to know when you're Overflowing (and should make converters) vs when you have Idle converters (and should add energy). Severity relative to income, construction-aware both for units and buildings. Styled to match the top bar, with magnet snapping to nearby UI when dragged.",
-	"last_updated": "2026-08-01T00:00:00.000Z"
+	"last_updated": "2026-08-01T00:01:00.000Z"
 }
