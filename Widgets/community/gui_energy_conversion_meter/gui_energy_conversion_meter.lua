@@ -3,7 +3,7 @@ local widget = widget ---@type Widget
 function widget:GetInfo()
     return {
         name = "Energy Conversion Meter",
-        desc = "9-bar meter next to the top bar showing your energy<->converter balance: green center = balanced, bars ramp yellow -> red as the imbalance grows. Right = energy going unconverted (Overflowing), left = converter capacity starved (Idle converters). Severity is relative to your E income; shows the E/s value, plus a small hint text at 3+ bars. Energy/converters actively under construction already count as fixed (blueprints don't). Holding 3+ bars for ~5s pops an on-screen alert; pinned at 4 bars it repeats every 20s and the side icon pulses red. Ctrl + left-click drag repositions the meter (saved).",
+        desc = "9-bar meter next to the top bar showing your energy<->converter balance: green center = balanced, bars ramp yellow -> red as the imbalance grows. Right = energy going unconverted (Overflowing), left = converter capacity starved (Idle converters). Severity is relative to your E income; shows the E/s value, plus a small hint text at 3+ bars. Energy/converters actively under construction already count as fixed (blueprints don't). Holding 3+ bars for ~5s pops an on-screen alert; pinned at 4 bars it repeats every 20s and the side icon pulses red. Alerts are configurable in Settings > Custom (on/off, spectating, size, sound). Ctrl + left-click drag repositions the meter (saved).",
         author = "Egzothicki",
         date = "July 2026",
         license = "GNU GPL, v2 or later",
@@ -53,10 +53,105 @@ local CONV_NOTIF4_REPEAT = 20 -- seconds between repeats while pinned at 4
 local CONV_NOTIF_COOLDOWN = 30 -- min seconds between level-3 alerts (2<->3 bounce guard)
 local CONV_NOTIF_SECONDS = 4 -- level-3 notification hold time
 local CONV_NOTIF4_SECONDS = 6 -- level-4 notification hold time
+local CONV_NOTIF_SIZES = { -- notification font size at 1080p: { level-4 strong, level-3 mild }
+    Large = { 26, 19 },
+    Medium = { 20, 15 },
+    Small = { 15, 11 },
+}
 -- an eco construction still counts as "being built" this many seconds after its
 -- last build progress (rides builder swaps / short stalls); an untouched
 -- blueprint never gets progress, so it never counts
 local BUILD_ACTIVE_GRACE = 3
+
+--------------------------------------------------------------------------------
+-- User settings (Settings > Custom > Energy Conversion Meter)
+--------------------------------------------------------------------------------
+local config = {
+    notifEnabled = true, -- pop the on-screen alert at sustained 3+ bars
+    notifSpectating = false, -- also alert while spectating
+    notifSize = "Medium", -- Large / Medium / Small (CONV_NOTIF_SIZES keys)
+    notifSound = true, -- beep when an alert fires
+}
+
+local OPTION_SPECS = {
+    {
+        configVariable = "notifEnabled",
+        name = "Notify when Idle Converters / Overflowing",
+        description = "Pop up the on-screen alert when the meter holds 3+ bars of Overflowing or Idle converters.\nThe meter itself always stays visible.",
+        type = "bool",
+    },
+    {
+        configVariable = "notifSpectating",
+        name = "Show notification when spectating",
+        description = "Also pop up alerts for the team you are watching while spectating.",
+        type = "bool",
+    },
+    {
+        configVariable = "notifSize",
+        name = "Notification size",
+        description = "Size of the on-screen alert text.",
+        type = "select",
+        options = { "Large", "Medium", "Small" },
+    },
+    {
+        configVariable = "notifSound",
+        name = "Notification sound",
+        description = "Play a beep when an alert fires.",
+        type = "bool",
+    },
+}
+
+local function GetOptionId(spec)
+    return "energy_conv_meter__" .. spec.configVariable
+end
+
+-- the options menu wants selects as an index into spec.options; config stores the string
+local function GetOptionValue(spec)
+    if spec.type == "select" then
+        for i, v in ipairs(spec.options) do
+            if config[spec.configVariable] == v then return i end
+        end
+        return 1
+    end
+    return config[spec.configVariable]
+end
+
+local function SetOptionValue(spec, value)
+    if spec.type == "select" then
+        config[spec.configVariable] = spec.options[value] or config[spec.configVariable]
+    else
+        config[spec.configVariable] = value
+    end
+end
+
+local function RegisterOptions()
+    if not (WG['options'] and WG['options'].addOptions) then return end
+    local list = {}
+    for _, spec in ipairs(OPTION_SPECS) do
+        list[#list + 1] = {
+            id = GetOptionId(spec),
+            widgetname = "Energy Conversion Meter",
+            name = spec.name,
+            description = spec.description,
+            type = spec.type,
+            options = spec.options,
+            value = GetOptionValue(spec),
+            onchange = function(_, value)
+                SetOptionValue(spec, value)
+            end,
+        }
+    end
+    WG['options'].addOptions(list)
+end
+
+local function UnregisterOptions()
+    if not (WG['options'] and WG['options'].removeOptions) then return end
+    local ids = {}
+    for _, spec in ipairs(OPTION_SPECS) do
+        ids[#ids + 1] = GetOptionId(spec)
+    end
+    WG['options'].removeOptions(ids)
+end
 
 --------------------------------------------------------------------------------
 local glColor = gl.Color
@@ -265,6 +360,13 @@ end
 -- runs on the same 0.5s poll as UpdateConversionInfo, on the DISPLAYED level
 -- (post-EMA, post-hysteresis) — what the user sees is what gets timed
 local function UpdateConvNotify()
+    -- alerts off (globally, or while spectating): drop any pending episode so
+    -- re-enabling mid-game starts a fresh sustain window instead of firing at once
+    if not config.notifEnabled
+        or (Spring.GetSpectatingState() and not config.notifSpectating) then
+        conv3Since, conv4Since, conv3Fired, convSide = nil, nil, false, 0
+        return
+    end
     local now = os.clock()
     local side = (convLevel > 0 and 1) or (convLevel < 0 and -1) or 0
     if side ~= convSide or math.abs(convLevel) < 3 then
@@ -289,7 +391,9 @@ local function UpdateConvNotify()
         convNotifStrong = true
         convNotifUntil = now + CONV_NOTIF4_SECONDS
         convNotifColor = convColor
-        Spring.PlaySoundFile("beep4", 0.75, "ui")
+        if config.notifSound then
+            Spring.PlaySoundFile("beep4", 0.75, "ui")
+        end
     elseif not conv3Fired and (now - conv3Since) >= CONV_NOTIF_SUSTAIN
         and (now - conv3LastAt) >= CONV_NOTIF_COOLDOWN then
         conv3Fired = true
@@ -299,7 +403,9 @@ local function UpdateConvNotify()
         convNotifStrong = false
         convNotifUntil = now + CONV_NOTIF_SECONDS
         convNotifColor = convColor
-        Spring.PlaySoundFile("beep4", 0.35, "ui")
+        if config.notifSound then
+            Spring.PlaySoundFile("beep4", 0.35, "ui")
+        end
     end
 end
 
@@ -385,6 +491,7 @@ end
 
 function widget:Initialize()
     BuildEcoDefs()
+    RegisterOptions()
     local x, y = Spring.GetViewGeometry()
     widget:ViewResize(x, y)
     UpdateConversionInfo()
@@ -428,8 +535,8 @@ end
 
 local CONV_TIP_TITLE = "Energy Conversion Meter"
 local function ConvTooltipText()
-    return "Shows you how much out of balance you are for Energy production"
-        .. " and Energy Conversion (Overflowing vs Idle Converters)"
+    return "Shows how much out of balance you are in Energy Conversion"
+        .. " (Overflowing vs Idle Converters). Ctrl + left mouse click to drag it"
 end
 
 function widget:DrawScreen()
@@ -583,17 +690,19 @@ function widget:DrawScreen()
 
     -- sustained-severity notification, side-colored, upper-center;
     -- level 4 = bigger and pulsing, level 3 = steady and smaller
-    if convNotifText and os.clock() < convNotifUntil then
+    -- (gated on the setting too, so toggling it off hides an active one at once)
+    if config.notifEnabled and convNotifText and os.clock() < convNotifUntil then
         local c = convNotifColor or CONV_BAR_COLORS[4]
         local a = 0.9
         if convNotifStrong then
             local pulse = 0.5 + 0.5 * math.sin(os.clock() * 2 * math.pi * 1.6)
             a = 0.55 + 0.45 * pulse
         end
+        local sizes = CONV_NOTIF_SIZES[config.notifSize] or CONV_NOTIF_SIZES.Medium
         local nscale = math.max(0.7, vsy / 1080)
         glColor(c[1], c[2], c[3], a)
         glText(convNotifText, vsx * 0.5, vsy * 0.74,
-            math.floor((convNotifStrong and 26 or 19) * nscale), "oc")
+            math.floor((convNotifStrong and sizes[1] or sizes[2]) * nscale), "oc")
     end
     glColor(1, 1, 1, 1)
 end
@@ -634,12 +743,27 @@ function widget:MouseRelease(mx, my, button)
 end
 
 function widget:GetConfigData()
-    return { convUserPos = convUserPos }
+    local data = { convUserPos = convUserPos }
+    for _, spec in ipairs(OPTION_SPECS) do
+        data[spec.configVariable] = config[spec.configVariable]
+    end
+    return data
 end
 
 function widget:SetConfigData(data)
-    if data and type(data.convUserPos) == "table" and tonumber(data.convUserPos[1]) and tonumber(data.convUserPos[2]) then
+    if not data then return end
+    if type(data.convUserPos) == "table" and tonumber(data.convUserPos[1]) and tonumber(data.convUserPos[2]) then
         convUserPos = { data.convUserPos[1], data.convUserPos[2] }
+    end
+    for _, spec in ipairs(OPTION_SPECS) do
+        local v = data[spec.configVariable]
+        if spec.type == "bool" then
+            if type(v) == "boolean" then config[spec.configVariable] = v end
+        elseif spec.type == "select" then
+            for _, opt in ipairs(spec.options) do
+                if v == opt then config[spec.configVariable] = v end
+            end
+        end
     end
 end
 
@@ -651,6 +775,7 @@ function widget:GetTooltip(mx, my)
 end
 
 function widget:Shutdown()
+    UnregisterOptions()
     if WG['tooltip'] and WG['tooltip'].RemoveTooltip then
         WG['tooltip'].RemoveTooltip('energyconvmeter')
     end
