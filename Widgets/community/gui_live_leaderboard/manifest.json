@@ -1,0 +1,10 @@
+{
+  "id": "gui_live_leaderboard",
+  "version": "1.0.0",
+  "display_name": "Live Leaderboard",
+  "author": "BackseatTactics",
+  "discord_link": "https://discord.com/channels/549281623154229250/1513599923709415524/1513599923709415524",
+  "github_link": "https://github.com/beyond-all-reason/BAR-Widgets/pull/17",
+  "description": "A live leaderboard containing the produced resources and dealt damage.",
+  "last_updated": "2026-08-18T00:00:00.000Z"
+}
