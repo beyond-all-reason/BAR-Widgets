@@ -1,0 +1,9 @@
+{
+	"id": "cmd_blueprint_select_and_rotate_with_mouse_wheel.lua",
+	"display_name": "Blueprint Mouse Wheel",
+	"author": "Vvsod",
+	"discord_link": "https://discord.com/channels/549281623154229250/1541522358626680993",
+	"github_link": "https://github.com/Vvsod/Blueprint-Mouse-Wheel/blob/main/cmd_blueprint_select_and_rotate_with_mouse_wheel.lua",
+	"description": "Mouse wheel selects blueprints; Alt+wheel rotates blueprints",
+	"last_updated": "2026-08-24T16:05:00.000+02:00"
+}
