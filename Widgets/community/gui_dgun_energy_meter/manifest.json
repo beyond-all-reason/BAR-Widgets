@@ -1,0 +1,10 @@
+{
+  "id": "gui_dgun_energy_meter",
+  "version": "1.0.0",
+  "display_name": "D-Gun Energy Meter",
+  "author": "Armis71",
+  "discord_link": "https://discord.com/channels/549281623154229250/1536180242878693506",
+  "github_link": "https://github.com/Armis71/BAR-Widgets-Public",
+  "description": "Small gas-tank-shaped meter next to your commander that shows while the D-Gun is armed, filling toward the shot's exact energy cost -- red if you can't afford it yet, green once you can.",
+  "last_updated": "2026-08-27T00:00:00Z"
+}
