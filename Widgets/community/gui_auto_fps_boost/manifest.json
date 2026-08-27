@@ -1,0 +1,10 @@
+{
+	"id": "gui_auto_fps_boost",
+	"version": "1.7.1",
+	"display_name": "Auto FPS Boost",
+	"author": "Matthieu (Arginou57)",
+	"discord_link": "https://discord.com/channels/549281623154229250/1542496354763276358",
+	"github_link": "https://github.com/Arginou57/BAR-widgets",
+	"description": "Automatically reduces graphics effects in 4 progressive levels when FPS drops (particles, icon distance, wreck draw distance, profiled expensive widgets, engine shading) and restores everything when performance recovers. /fpsboost status shows FPS, level and gain.",
+	"last_updated": "2026-08-27T00:00:00.000Z"
+}
