@@ -1,0 +1,10 @@
+{
+	"id": "gui_pinpointer_counter",
+	"version": "1.0.0",
+	"display_name": "Pinpointer Counter",
+	"author": "Devin Jacobs",
+	"discord_link": "https://discord.com/channels/549281623154229250/1558570041262481619",
+	"github_link": "https://github.com/beyond-all-reason/BAR-Widgets/tree/main/Widgets/community/gui_pinpointer_counter",
+    "description": "Show the active Pinpointer count, with a bullseye graphic that shrinks and changes color. Draggable with Ctrl + left click.",
+	"last_updated": "2026-10-10T20:01:38.000Z"
+}
