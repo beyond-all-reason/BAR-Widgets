@@ -64,8 +64,8 @@ function toCanonicalPath(relativePath: string): string {
 }
 
 function writeField(hash: Hash, value: Buffer): void {
-  const length = Buffer.allocUnsafe(8);
-  length.writeBigUInt64BE(BigInt(value.length));
+  const length = Buffer.allocUnsafe(4);
+  length.writeUInt32LE(value.length);
   hash.update(length);
   hash.update(value);
 }
