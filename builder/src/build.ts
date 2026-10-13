@@ -33,7 +33,11 @@ async function main() {
     printValidationErrors(errors);
   }
 
-  widgets.sort((a, b) => b.lastUpdated - a.lastUpdated);
+  widgets.sort(
+    (a, b) =>
+      b.lastUpdated - a.lastUpdated ||
+      Buffer.from(a.widgetName).compare(Buffer.from(b.widgetName))
+  );
   logWidgetOrder(widgets);
   writeMergedManifestCatalog(widgets);
 
@@ -61,7 +65,12 @@ function logWidgetOrder(widgets: WidgetInfo[]): void {
 }
 
 function writeMergedManifestCatalog(widgets: WidgetInfo[]): void {
-  const manifests = widgets.flatMap((widget) => widget.manifests);
+  const manifests = widgets.flatMap((widget) =>
+    widget.manifests.map((manifest) => ({
+      ...manifest,
+      content_hash: widget.contentHash,
+    }))
+  );
   const mergedValidation = validateManifestEntries(
     manifests,
     "build/manifests.json"

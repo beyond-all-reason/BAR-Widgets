@@ -45,6 +45,11 @@
         "id": {
           "$ref": "#/definitions/widgetId"
         },
+        "content_hash": {
+          "type": "string",
+          "description": "Builder-generated digest of the complete widget source tree.",
+          "pattern": "^sha512:[0-9a-f]{128}$"
+        },
         "version": {
           "type": "string",
           "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"

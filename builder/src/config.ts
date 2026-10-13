@@ -1,7 +1,11 @@
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
-export const ROOT_DIR = path.resolve("/app");
-export const BUILDER_DIR = path.join(ROOT_DIR, "builder");
+export const BUILDER_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  ".."
+);
+export const ROOT_DIR = path.dirname(BUILDER_DIR);
 export const BUILD_DIR = path.join(ROOT_DIR, "build");
 export const WIDGETS_DIR = path.join(ROOT_DIR, "Widgets");
 export const DIST_DIR = path.join(BUILD_DIR, "distributions");

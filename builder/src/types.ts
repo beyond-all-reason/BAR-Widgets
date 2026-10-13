@@ -1,5 +1,6 @@
 export interface Manifest {
   id: string;
+  content_hash?: string;
   display_name: string;
   author: string;
   discord_link: string | null;
@@ -13,6 +14,7 @@ export interface Manifest {
 export interface WidgetInfo {
   widgetDir: string;
   widgetName: string;
+  contentHash: string;
   manifests: Manifest[];
   lastUpdated: number;
   sizeBytes: number;

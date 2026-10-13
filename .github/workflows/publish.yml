@@ -79,6 +79,40 @@ jobs:
             exit 1
           fi
 
+      - name: Sign manifest catalog
+        env:
+          MANIFEST_SIGNING_PRIVATE_KEY_B64: ${{ secrets.MANIFEST_SIGNING_PRIVATE_KEY_B64 }}
+          MANIFEST_SIGNING_PUBLIC_KEY_B64: ${{ vars.MANIFEST_SIGNING_PUBLIC_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          : "${MANIFEST_SIGNING_PRIVATE_KEY_B64:?Set repository secret MANIFEST_SIGNING_PRIVATE_KEY_B64}"
+          : "${MANIFEST_SIGNING_PUBLIC_KEY_B64:?Set repository variable MANIFEST_SIGNING_PUBLIC_KEY_B64}"
+
+          private_key="$(mktemp)"
+          public_key="$(mktemp)"
+          signature="$(mktemp)"
+          trap 'rm -f "$private_key" "$public_key" "$signature"' EXIT
+          chmod 600 "$private_key"
+
+          printf '%s' "$MANIFEST_SIGNING_PRIVATE_KEY_B64" | base64 --decode > "$private_key"
+          printf '%s' "$MANIFEST_SIGNING_PUBLIC_KEY_B64" | base64 --decode > "$public_key"
+          openssl pkey -pubin -in "$public_key" -noout
+          openssl pkeyutl -sign -rawin \
+            -inkey "$private_key" \
+            -in build/manifests.json \
+            -out "$signature"
+
+          test "$(wc -c < "$signature")" -eq 64
+          base64 --wrap=0 "$signature" > build/manifests.json.sig
+          printf '\n' >> build/manifests.json.sig
+
+          base64 --decode build/manifests.json.sig | \
+            openssl pkeyutl -verify -rawin \
+              -pubin \
+              -inkey "$public_key" \
+              -in build/manifests.json \
+              -sigfile /dev/stdin
+
       - name: Check R2 configuration
         run: |
           : "${R2_ACCOUNT_ID:?Set repository variable R2_ACCOUNT_ID}"

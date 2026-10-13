@@ -5,7 +5,8 @@
   "license": "GPL-2.0-or-later",
   "type": "module",
   "scripts": {
-    "build": "tsx src/build.ts"
+    "build": "tsx src/build.ts",
+    "test": "tsx --test src/*.test.ts"
   },
   "dependencies": {
     "ajv": "^8.20.0",
