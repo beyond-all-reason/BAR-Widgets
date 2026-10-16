@@ -53,14 +53,36 @@ List the actions your widget registers with `widgetHandler:AddAction` under `key
 
 ```json
 "keybindings": [
-  { "action": "gui_example_toggle", "defaultKeysets": ["Alt+sc_t"] },
-  { "action": "gui_example_select", "alwaysModifier": "any", "defaultKeysets": ["sc_g"] },
-  { "action": "gui_example_refresh", "defaultKeysets": ["F5"] },
-  { "action": "gui_example_pin", "defaultKeysets": ["Alt+sc_p"], "icon": "duplicate.png" }
+  { "action": "gui_example_toggle", "label": "toggle", "defaultKeysets": ["Alt+sc_t"] },
+  { "action": "gui_example_select", "label": "select", "alwaysModifier": "any", "defaultKeysets": ["sc_g"] },
+  { "action": "gui_example_refresh", "label": "refresh", "description": "refresh_tooltip", "defaultKeysets": ["F5"] },
+  { "action": "gui_example_pin", "label": "pin", "defaultKeysets": ["Alt+sc_p"], "icon": "duplicate.png" }
 ]
 ```
 
-Each action is labelled by its command. A player gets each default key once, and one they remove stays removed. A `sc_` keyset binds the physical key regardless of layout; one without it, like `F5` above, binds the keycode a layout produces, which is what most players expect for keys that already carry a fixed meaning. `alwaysModifier` (`any` or `shift`) and `icon` are optional; `icon` is a path to an image relative to the widget directory, shown next to the action in the keybind editor. The example above expects a file named `duplicate.png` sitting next to the widget's manifest.json; it's a copy of the base game's `LuaUI/Images/keybinds/duplicate.png`, confirmed to render correctly in the keybind editor.
+`label` is required; `description` is optional. Both are i18n key fragments, not display text directly: the keybind editor namespaces each under `widgets.<your_widget_id>.` and looks up the result in your `localizations.json` (below), falling back to the key fragment itself if nothing translates it. A player gets each default key once, and one they remove stays removed. A `sc_` keyset binds the physical key regardless of layout; one without it, like `F5` above, binds the keycode a layout produces, which is what most players expect for keys that already carry a fixed meaning. `alwaysModifier` (`any` or `shift`) and `icon` are optional; `icon` is a path to an image relative to the widget directory, shown next to the action in the keybind editor. The example above expects a file named `duplicate.png` sitting next to the widget's manifest.json; it's a copy of the base game's `LuaUI/Images/keybinds/duplicate.png`, confirmed to render correctly in the keybind editor.
+
+### localizations.json (optional)
+
+Translate your keybind `label`s and `description`s, and optionally override your `display_name`, with a `localizations.json` sitting next to your `manifest.json`:
+
+```json
+{
+  "en": {
+    "displayName": "A Prettier Display Name",
+    "toggle": "Toggle",
+    "select": "Select",
+    "refresh": "Refresh",
+    "refresh_tooltip": "Reload the widget's cached data",
+    "pin": "Pin"
+  },
+  "de": {
+    "toggle": "Umschalten"
+  }
+}
+```
+
+Each top-level key is a language code; each value is a table of key fragment to translated text, matching the `label`/`description` fragments from your `keybindings` and (optionally) a `displayName` fragment that overrides the keybind editor's category title for your widget. A language missing a key, or missing entirely, falls back to the key fragment itself. Keys cannot contain a dot (i18n splits on it) and must resolve to a non-empty string; anything else is dropped with a warning rather than failing the whole file.
 
 ## Verify
 
