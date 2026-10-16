@@ -81,13 +81,23 @@
     },
     "action": {
       "type": "object",
-      "required": ["action"],
+      "required": ["action", "label"],
       "additionalProperties": false,
       "properties": {
         "action": {
           "type": "string",
           "pattern": "\\S",
-          "description": "Bind command and its args, as passed to /bind. The keybind editor labels the action with it."
+          "description": "Bind command and its args, as passed to /bind."
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "i18n key fragment the keybind editor labels the action with, namespaced under widgets.<id>. and resolved against the widget's localizations.json (falls back to the key fragment itself if untranslated)."
+        },
+        "description": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "Optional i18n key fragment for the action's tooltip, namespaced and resolved the same way as label."
         },
         "defaultKeysets": {
           "type": "array",
