@@ -6,3 +6,7 @@
 	path = Widgets/tetrisface
 	url = https://github.com/tetrisface/community-widgets.git
 	branch = main
+[submodule "Widgets/community/gui_blueprint_gallery"]
+	path = Widgets/community/gui_blueprint_gallery
+	url = https://github.com/Boniito24/Blueprint-Gallery-GRID.git
+	branch = main
