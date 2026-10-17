@@ -1,0 +1,10 @@
+{
+	"id": "gui_callout_wheel",
+	"version": "1.0.0",
+	"display_name": "Callout Wheel",
+	"author": "Manny",
+	"discord_link": "https://discord.com/channels/549281623154229250/1121129869565239306",
+	"github_link": "https://github.com/MannySVK/gui_callout_wheel",
+	"description": "Readable, contextual ping wheel: names whatever is near the click (own / ally / enemy, building / unit / commander, or empty ground) and shows allies an animated map mark plus a system chat line.",
+	"last_updated": "2026-08-31T00:00:00.000Z"
+}
