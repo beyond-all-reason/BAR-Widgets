@@ -1,0 +1,9 @@
+{
+  "id": "gui_hud_histogram",
+  "version": "1.1.0",
+  "display_name": "Histogram HUD",
+  "author": "goddot",
+  "discord_link": "https://discord.com/channels/549281623154229250/1483200156789768463/1483888083513638924",
+  "description": "A timeseries HUD tailored for tracking live Free-For-All (FFA) and team matches in Beyond All Reason with history.",
+  "last_updated": "2026-10-16T00:00:00.000Z"
+}

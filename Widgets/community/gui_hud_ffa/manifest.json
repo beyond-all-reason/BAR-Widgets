@@ -1,0 +1,10 @@
+{
+  "id": "gui_hud_ffa",
+  "version": "2.1.0",
+  "display_name": "FFA & TEAM RADAR HUDs",
+  "author": "goddot",
+  "discord_link": "https://discord.com/channels/549281623154229250/1483200156789768463/1483888083513638924",
+  "github_link": "https://github.com/bitopsy/HUD-for-FFA-for-BAR-specs",
+  "description": "A custom HUD tailored for tracking lifve Free-For-All (FFA) and team matches in Beyond All Reason.",
+  "last_updated": "2026-10-16T00:00:00.000Z"
+}
