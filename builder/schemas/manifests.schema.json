@@ -71,6 +71,34 @@
         "last_updated": {
           "type": "string",
           "format": "date-time"
+        },
+        "keybindings": {
+          "type": "array",
+          "description": "Bindable actions the in-game keybind editor lists under the widget.",
+          "items": { "$ref": "#/definitions/action" }
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": ["action"],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "Bind command and its args, as passed to /bind. The keybind editor labels the action with it."
+        },
+        "defaultKeysets": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^\\S+$" },
+          "description": "Bound where a profile has nothing for the action. A shift-paired action names one, not an Any+ one."
+        },
+        "alwaysModifier": { "enum": ["any", "shift"] },
+        "icon": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path relative to the widget directory."
         }
       }
     }

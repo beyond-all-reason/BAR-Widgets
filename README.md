@@ -45,7 +45,22 @@ Your `manifest.json` must include the following fields:
 }
 ```
 
-The `last_updated` field is an ISO 8601 timestamp used to sort widgets by recency. Update it whenever you publish a new version.
+The `last_updated` field is an ISO 8601 timestamp used to sort widgets by recency. Update it whenever you publish a new version. If your changes are a big change in functionality, update it to today, for smaller updates and bugfixes increase it by one second. It will still trigger the update mechanism but not affect the sorting of the overview.
+
+### Keybind actions (optional)
+
+List the actions your widget registers with `widgetHandler:AddAction` under `keybindings`, and the in-game keybind editor shows them under your `display_name`:
+
+```json
+"keybindings": [
+  { "action": "gui_example_toggle", "defaultKeysets": ["Alt+sc_t"] },
+  { "action": "gui_example_select", "alwaysModifier": "any", "defaultKeysets": ["sc_g"] },
+  { "action": "gui_example_refresh", "defaultKeysets": ["F5"] },
+  { "action": "gui_example_pin", "defaultKeysets": ["Alt+sc_p"], "icon": "duplicate.png" }
+]
+```
+
+Each action is labelled by its command. A player gets each default key once, and one they remove stays removed. A `sc_` keyset binds the physical key regardless of layout; one without it, like `F5` above, binds the keycode a layout produces, which is what most players expect for keys that already carry a fixed meaning. `alwaysModifier` (`any` or `shift`) and `icon` are optional; `icon` is a path to an image relative to the widget directory, shown next to the action in the keybind editor. The example above expects a file named `duplicate.png` sitting next to the widget's manifest.json; it's a copy of the base game's `LuaUI/Images/keybinds/duplicate.png`, confirmed to render correctly in the keybind editor.
 
 ## Verify
 
