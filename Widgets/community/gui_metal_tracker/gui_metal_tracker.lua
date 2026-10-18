@@ -275,9 +275,13 @@ local function FindAllPlayersOnAllyTeam() --creates a list with all allys per te
                     allyTeamList[i+1][name] = {order = counter , colour = {r =r ,g=g, b=b}}
                 end
             else --Ai or something else
-                local a,b,allyTeamID,isAI,e,f,g,h,w,r,t,y  =  Spring.GetAIInfo(teamID)
+                local _, _, _, isAI = Spring.GetTeamInfo(teamID, false)
                 if isAI then
                     local name = Spring.GetGameRulesParam('ainame_' .. teamID)
+                    if not name then
+                        local _, aiName = Spring.GetAIInfo(teamID)
+                        name = (aiName or "AI") .. " (team " .. teamID .. ")"
+                    end
                     local r,g,b = Spring.GetTeamColor(teamID)
                     allyTeamList[i+1][name] = {order = counter , colour = {r =r ,g=g, b=b}}
                 end        
@@ -892,7 +896,7 @@ function widget:Shutdown() --release all values
     if settingChangeTexture then
 		gl_DeleteList(settingChangeTexture)
 	end
-    if printList then
+    if printList and WG['tooltip'] then
         for i=1, #printList do --clean up tooltips before changing the printvalue
             WG['tooltip'].RemoveTooltip("metal tracker tooltip"..i)
         end
