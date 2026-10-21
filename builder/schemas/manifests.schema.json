@@ -81,7 +81,7 @@
     },
     "action": {
       "type": "object",
-      "required": ["action", "label"],
+      "required": ["action"],
       "additionalProperties": false,
       "properties": {
         "action": {
@@ -92,7 +92,7 @@
         "label": {
           "type": "string",
           "pattern": "\\S",
-          "description": "i18n key fragment the keybind editor labels the action with, namespaced under widgets.<id>. and resolved against the widget's localizations.json (falls back to the key fragment itself if untranslated)."
+          "description": "Optional i18n key fragment the keybind editor labels the action with, namespaced under widgets.<id>. and resolved against the widget's localizations.json (falls back to the key fragment itself if untranslated). Without one the action is labelled by its command."
         },
         "description": {
           "type": "string",
