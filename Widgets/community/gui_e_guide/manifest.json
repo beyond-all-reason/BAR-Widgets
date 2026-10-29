@@ -1,0 +1,10 @@
+{
+  "id": "gui_e_guide",
+  "version": "1.0.0",
+  "display_name": "Energy Guide",
+  "author": "goddot",
+  "discord_link": "https://discord.com/channels/549281623154229250/1561438067401695242",
+  "github_link": "https://github.com/bitopsy/BAR-Widgets/tree/main/Widgets/community/gui_e_guide",
+  "description": "Tiny draggable mini-panel ranking the best energy sources (wind, solar, tidal, geo, T2) for the current map settings and faction.",
+  "last_updated": "2026-10-18T00:00:00.000Z"
+}
