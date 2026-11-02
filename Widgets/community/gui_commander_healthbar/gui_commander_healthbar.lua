@@ -4,7 +4,7 @@ function widget:GetInfo()
     return {
         name = "Commander Health Bar",
         desc = "Commander health bar. Ctrl + left-drag to reposition.",
-        author = "Spectator HUD",
+        author = "Buttons840",
         date = "October 2026",
         license = "GNU GPL, v2 or later",
         layer = 100,
