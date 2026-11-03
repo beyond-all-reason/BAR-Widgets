@@ -2,6 +2,8 @@
 	"id": "cmd_op_macro",
 	"display_name": "op macro",
 	"author": "Kuchy",
-	"description": "op macro
+	"description": "op macro"
+	"discord_link": "",
+  	"github_link": "https://github.com/poiju87/BAR-Widgets/tree/main/Widgets/community/cmd_op_macro",
 	"last_updated": "2026-11-03T23:21:05.466348Z"
 }
