@@ -1,0 +1,10 @@
+{
+	"id": "gui_gridmenu_build_time",
+	"version": "1.0.0",
+	"display_name": "Grid Menu Build Time",
+	"author": "jjjj",
+	"discord_link": "",
+	"github_link": "https://github.com/beyond-all-reason/BAR-Widgets/tree/main/Widgets/community/gui_gridmenu_build_time",
+	"description": "Adds each unit's build time to the grid menu, in green above the metal and energy cost, so all three costs are visible at a glance. Works for constructors placing buildings and for factories making units.",
+	"last_updated": "2026-11-05T00:00:00.000Z"
+}
