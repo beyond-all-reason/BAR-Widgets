@@ -84,6 +84,8 @@ Translate your keybind `label`s and `description`s, and optionally override your
 
 Each top-level key is a language code; each value is a table of key fragment to translated text, matching the `label`/`description` fragments from your `keybindings` and (optionally) a `displayName` fragment that overrides the keybind editor's category title for your widget. A language missing a key, or missing entirely, falls back to the key fragment itself. Keys cannot contain a dot (i18n splits on it) and must resolve to a non-empty string; anything else is dropped with a warning rather than failing the whole file.
 
+The game's own language files don't carry text for hub widgets, so a widget that gives an action a `label` or `description` is expected to ship its own `localizations.json` with at least an `en` entry for it. Without one, players see the raw key fragment.
+
 ## Verify
 
 It is recommended to verify your widget by running `docker compose --profile=tool run --rm builder` before submitting a PR.
