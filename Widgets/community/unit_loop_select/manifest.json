@@ -1,0 +1,15 @@
+{
+	"id": "unit_loop_select",
+	"version": "1.1.0",
+	"display_name": "Loop Select",
+	"author": "Niobium",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Hold a key and drag to draw a freehand loop around the units you want selected, instead of a box.",
+	"last_updated": "2026-11-05T00:00:00.000Z",
+	"keybindings": [
+		{ "action": "selectloop", "label": "activate", "alwaysModifier": "any", "defaultKeysets": ["space"] },
+		{ "action": "selectloop_add", "label": "add", "alwaysModifier": "any", "defaultKeysets": ["shift"] },
+		{ "action": "selectloop_deselect", "label": "deselect", "alwaysModifier": "any", "defaultKeysets": ["ctrl"] }
+	]
+}
