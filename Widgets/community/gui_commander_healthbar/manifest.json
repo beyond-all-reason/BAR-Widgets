@@ -1,0 +1,10 @@
+{
+  "id": "gui_commander_healthbar",
+  "version": "1.0.0",
+  "display_name": "Commander Health Bar",
+  "author": "Buttons840",
+  "discord_link": "https://discord.com/channels/549281623154229250/1564083374035832892",
+  "github_link": "https://github.com/beyond-all-reason/BAR-Widgets/tree/main/Widgets/community/gui_commander_healthbar",
+  "description": "Draggable commander health bar with animated damage, health-based colors, and adjustable size and effects.",
+  "last_updated": "2026-10-26T00:40:00.000Z"
+}
