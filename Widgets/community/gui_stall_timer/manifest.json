@@ -1,0 +1,10 @@
+{
+	"id": "gui_stall_timer",
+	"version": "1.0.0",
+	"display_name": "Stall Timer",
+	"author": "Greg Weaver",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Shows time-to-empty under the metal and energy sliders as M:SS. Displays -:-- when a resource is not falling, and caps at 9:59. Updates once per second.",
+	"last_updated": "2026-11-11T00:00:00.000Z"
+}
