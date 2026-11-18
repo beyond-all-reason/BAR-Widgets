@@ -4,7 +4,7 @@ function widget:GetInfo()
 	return {
 		name = "Stall Timer",
 		desc = "Shows time-to-stall under the metal and energy sliders as M:SS. -:-- when the bar is not falling, 9:59 at ten minutes or more.",
-		author = "gweaver",
+		author = "gregory-j-weaver",
 		date = "2026-11-11",
 		license = "GNU GPL v2 or later",
 		layer = -94990, -- just after Top Bar so the labels sit on top of its glow
