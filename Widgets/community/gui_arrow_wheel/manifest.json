@@ -1,0 +1,13 @@
+{
+	"id": "gui_arrow_wheel",
+	"version": "1.3.0",
+	"display_name": "Arrow Wheel",
+	"author": "_sing",
+	"discord_link": "",
+	"github_link": "",
+	"description": "Hold the draw key (`) and then Q, aim with the mouse and release Q to draw an arrow on the map for your allies.",
+	"last_updated": "2026-11-22T00:00:00.000Z",
+	"keybindings": [
+		{ "action": "arrow_wheel", "defaultKeysets": ["sc_`,sc_q"] }
+	]
+}
