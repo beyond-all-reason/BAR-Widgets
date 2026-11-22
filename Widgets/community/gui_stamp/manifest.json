@@ -1,0 +1,20 @@
+{
+	"id": "gui_stamp",
+	"version": "1.0.0",
+	"display_name": "GUI Stamp",
+	"author": "Greg Weaver",
+	"discord_link": "https://discord.com/channels/549281623154229250/1564385891924054016",
+	"github_link": "https://github.com/gregory-j-weaver/BAR-Widgets/tree/gui_stamp",
+	"description": "This allows a player to make drawings and keep them and stamp them later.",
+	"last_updated": "2026-10-08T00:00:00.000Z",
+	"keybindings": [
+		{"action": "stamp_toggle", "defaultKeysets": ["Ctrl+Alt+sc_d"]},
+		{"action": "stamp_clear_strokes", "defaultKeysets": ["Ctrl+Alt+sc_z"]},
+		{"action": "stamp_save", "defaultKeysets": ["Ctrl+Alt+sc_t"]},
+		{"action": "stamp_paste", "defaultKeysets": ["Ctrl+Alt+sc_b"]},
+		{"action": "stamp_prev", "defaultKeysets": ["Ctrl+Alt+sc_["]},
+		{"action": "stamp_next", "defaultKeysets": ["Ctrl+Alt+sc_]"]},
+		{"action": "stamp_delete", "defaultKeysets": ["Ctrl+Alt+sc_y"]},
+		{"action": "stamp_cancel", "defaultKeysets": ["Ctrl+Alt+sc_x"]}
+	]
+}
