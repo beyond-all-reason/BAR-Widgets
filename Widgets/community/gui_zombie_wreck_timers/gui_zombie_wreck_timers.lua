@@ -40,6 +40,7 @@ local spGetGameFrame         = Spring.GetGameFrame
 local spGetCameraPosition    = Spring.GetCameraPosition
 local spIsGUIHidden          = Spring.IsGUIHidden
 local spValidFeatureID       = Spring.ValidFeatureID
+local spGetFeatureDefID      = Spring.GetFeatureDefID
 
 local glPushMatrix = gl.PushMatrix
 local glPopMatrix  = gl.PopMatrix
@@ -60,29 +61,31 @@ local format = string.format
 local tracked = {}
 local trackedCount = 0
 
+local HEAP_NAME_SUFFIX = "_heap"
+local isHeapDef = {}
+for featureDefID, featureDef in pairs(FeatureDefs) do
+	if featureDef.customParams.category == "heaps" or featureDef.name:sub(-#HEAP_NAME_SUFFIX) == HEAP_NAME_SUFFIX then
+		isHeapDef[featureDefID] = true
+	end
+end
+
 -- Game state panel, fed by the game rules params the zombie gadget publishes
 local TECH_LEVEL_PARAM = "zombie_tech_level"
-local REZ_SPEED_PARAM = "zombie_rez_power_speed"
 local LAB_MULTIPLIER_PARAM = "zombie_factory_buildpower_multiplier"
 local TECH_LEVEL_MIN = 0.5 -- the gadget's tech estimate range
 local TECH_LEVEL_MAX = 4.5
-local REZ_SPEED_MAX = 130 -- the gadget's rez power speed at tech 4.5
 local LAB_MULTIPLIER_MAX = 1.7 ^ 4.5 -- the gadget's lab buildpower multiplier at tech 4.5
--- the gadget clamps every wreck timer between these, overridable by the same customparams it reads
-local RESPAWN_DELAY_MIN_PARAM = "zombie_minimum_respawn_delay"
-local RESPAWN_DELAY_MAX_PARAM = "zombie_maximum_respawn_delay"
-local respawnDelayMin = 45
-local respawnDelayMax = 120
+local HEAP_DELAY_MULTIPLIER_PARAM = "zombie_heap_respawn_delay_multiplier"
+local heapDelayMultiplier = 2
 
 local PANEL_MODES = { "None", "Basic", "Advanced" }
 local PANEL_OPTION_ID = "zombie_wreck_timers__panelMode"
 local PANEL_ROWS = {
 	tech = { label = "Tech", advancedOnly = true },
-	rising = { label = "Rising" },
 	labs = { label = "Labs" },
 }
-local PANEL_ROW_ORDER = { "tech", "rising", "labs" }
-local PANEL_VALUE_SAMPLES = { tech = "4.5 / 4.5", rising = "130 / 130 (120-120s)", labs = "10.9x / 10.9x" }
+local PANEL_ROW_ORDER = { "tech", "labs" }
+local PANEL_VALUE_SAMPLES = { tech = "4.5 / 4.5", labs = "10.9x / 10.9x" }
 
 local PANEL_SIZE_FRAC = 0.98 -- element height as a fraction of the top bar height
 local PANEL_ANCHOR_MARGIN = 12
@@ -92,8 +95,8 @@ local PANEL_PAD_FRAC = 0.16
 local PANEL_GAP_FRAC = 0.14
 local PANEL_BAR_WIDTH_FRAC = 3.0 -- in element heights
 local PANEL_BAR_HEIGHT_FRAC = 0.13
-local PANEL_FONT_FRAC = { [2] = 0.28, [3] = 0.23 } -- by row count
-local PANEL_ROW_OFFSETS = { [2] = { 0.22, -0.22 }, [3] = { 0.3, 0, -0.3 } } -- in element heights from the center
+local PANEL_FONT_FRAC = { [1] = 0.32, [2] = 0.28 } -- by row count
+local PANEL_ROW_OFFSETS = { [1] = { 0 }, [2] = { 0.22, -0.22 } } -- in element heights from the center
 local PANEL_FILL_SPEED = 4 -- bar fill eases toward its target at this rate per second
 local PANEL_SKEW_SIDE_PAD_FRAC = 0.7 -- the skewed bottom cut eats into the sides, so pad them by this much of it
 local PANEL_CORNER_FRAC = 0.16
@@ -114,11 +117,13 @@ local BAR_COLOR_RAMP = {
 }
 local TOOLTIP_NAME = "zombiewrecktimers_tech"
 
-local panelMode = "Basic"
+local CONFIG_VERSION = 2 -- settings without a version hold a "Basic" nobody picked
+
+local panelMode = "None"
 local panel = { x = 0, y = 0, w = 0, h = 34 }
 local panelUserPos = nil
 local panelDrag = nil
-local shownFill = { tech = 0, rising = 0, labs = 0 }
+local shownFill = { tech = 0, labs = 0 }
 local lastDrawClock = os.clock()
 local vsx, vsy = Spring.GetViewGeometry()
 
@@ -163,6 +168,13 @@ local function tryAddFeature(featureID, knownCreation)
 		local frame = spGetGameFrame()
 		if spawnFrame > frame then
 			data.delayFrames = spawnFrame - frame
+		end
+	end
+	if isHeapDef[spGetFeatureDefID(featureID)] then
+		data.isHeap = true
+		-- a heap's timer runs until it turns into a wreck, which then waits its own delay
+		if data.delayFrames and heapDelayMultiplier > 0 then
+			data.wreckDelayFrames = floor(data.delayFrames / heapDelayMultiplier)
 		end
 	end
 	tracked[featureID] = data
@@ -248,6 +260,9 @@ local function getDisplayText(data, remainingSec)
 	else
 		text = format("%d", remainingSec)
 	end
+	if data.isHeap and not data.wreckDelayFrames then
+		text = text .. "+"
+	end
 
 	data.displaySec = remainingSec
 	data.text = text
@@ -263,11 +278,9 @@ local function panelTextWidth(text, fontSize)
 	return ((font and font:GetTextWidth(text)) or glGetTextWidth(text) or 0) * fontSize
 end
 
-local function readRespawnDelayClamps()
+local function readHeapDelayMultiplier()
 	for _, unitDef in pairs(UnitDefs) do
-		local params = unitDef.customParams
-		respawnDelayMin = tonumber(params[RESPAWN_DELAY_MIN_PARAM]) or respawnDelayMin
-		respawnDelayMax = tonumber(params[RESPAWN_DELAY_MAX_PARAM]) or respawnDelayMax
+		heapDelayMultiplier = tonumber(unitDef.customParams[HEAP_DELAY_MULTIPLIER_PARAM]) or heapDelayMultiplier
 	end
 end
 
@@ -320,8 +333,8 @@ local function updatePanel()
 	panel.pad = max(3, floor(s * PANEL_PAD_FRAC)) + sidePad
 	panel.gap = floor(s * PANEL_GAP_FRAC)
 	panel.icon = floor(s * PANEL_ICON_FRAC)
-	panel.font = s * (PANEL_FONT_FRAC[rowCount] or PANEL_FONT_FRAC[3])
-	panel.rowOffsets = PANEL_ROW_OFFSETS[rowCount] or PANEL_ROW_OFFSETS[3]
+	panel.font = s * (PANEL_FONT_FRAC[rowCount] or PANEL_FONT_FRAC[2])
+	panel.rowOffsets = PANEL_ROW_OFFSETS[rowCount] or PANEL_ROW_OFFSETS[2]
 	panel.labelWidth = 0
 	panel.valueWidth = 0
 	for i = 1, rowCount do
@@ -350,7 +363,7 @@ local function readTechState()
 	if not techLevel then
 		return nil
 	end
-	return techLevel, spGetGameRulesParam(REZ_SPEED_PARAM) or 0, spGetGameRulesParam(LAB_MULTIPLIER_PARAM) or 1
+	return techLevel, spGetGameRulesParam(LAB_MULTIPLIER_PARAM) or 1
 end
 
 local function panelShown()
@@ -405,19 +418,12 @@ local function drawPanelBar(x, y, fill)
 	end
 end
 
-local function panelTooltip(techLevel, rezSpeed, labMultiplier)
+local function panelTooltip(techLevel, labMultiplier)
 	return format(
 		"Zombie tech %.1f of %.1f, estimated from the strongest team's army\n"
-			.. "Rising speed %d, cap %d at tech %.1f. Wreck power revived per second\n"
-			.. "Wreck timer = power / rising speed, never under %d s or over %d s\n"
 			.. "Zombie lab build speed %.1fx, cap %.1fx at tech %.1f",
 		techLevel,
 		TECH_LEVEL_MAX,
-		rezSpeed,
-		REZ_SPEED_MAX,
-		TECH_LEVEL_MAX,
-		respawnDelayMin,
-		respawnDelayMax,
 		labMultiplier,
 		LAB_MULTIPLIER_MAX,
 		TECH_LEVEL_MAX
@@ -425,7 +431,7 @@ local function panelTooltip(techLevel, rezSpeed, labMultiplier)
 end
 
 local function drawGameStatePanel()
-	local techLevel, rezSpeed, labMultiplier = readTechState()
+	local techLevel, labMultiplier = readTechState()
 	if panelMode == "None" or not techLevel then
 		return
 	end
@@ -436,12 +442,10 @@ local function drawGameStatePanel()
 	lastDrawClock = now
 	local targetFill = {
 		tech = (techLevel - TECH_LEVEL_MIN) / (TECH_LEVEL_MAX - TECH_LEVEL_MIN),
-		rising = rezSpeed / REZ_SPEED_MAX,
 		labs = (labMultiplier - 1) / (LAB_MULTIPLIER_MAX - 1),
 	}
 	local values = {
 		tech = format("%.1f / %.1f", techLevel, TECH_LEVEL_MAX),
-		rising = format("%d / %d (%d-%ds)", rezSpeed, REZ_SPEED_MAX, respawnDelayMin, respawnDelayMax),
 		labs = format("%.1fx / %.1fx", labMultiplier, LAB_MULTIPLIER_MAX),
 	}
 	for key, target in pairs(targetFill) do
@@ -455,7 +459,7 @@ local function drawGameStatePanel()
 	local cy = panel.y + s * 0.5
 	local iconX = panel.x + panel.pad
 	local half = panel.icon / 2
-	local iconR, iconG, iconB = rampColor((shownFill.rising + shownFill.labs) * 0.5)
+	local iconR, iconG, iconB = rampColor(shownFill.labs)
 	glColor(iconR, iconG, iconB, 1)
 	glTexture(PANEL_ICON)
 	glTexRect(iconX, cy - half, iconX + panel.icon, cy + half)
@@ -479,7 +483,7 @@ local function drawGameStatePanel()
 		WG["tooltip"].AddTooltip(
 			TOOLTIP_NAME,
 			{ panel.x, panel.y, panel.x + panel.w, panel.y + panel.h },
-			panelTooltip(techLevel, rezSpeed, labMultiplier),
+			panelTooltip(techLevel, labMultiplier),
 			nil,
 			"Zombies"
 		)
@@ -492,7 +496,7 @@ local function panelModeIndex()
 			return i
 		end
 	end
-	return 2
+	return 1
 end
 
 local function registerOptions()
@@ -504,7 +508,7 @@ local function registerOptions()
 			id = PANEL_OPTION_ID,
 			widgetname = "Zombie Wreck Timers",
 			name = "Zombie game state panel",
-			description = "Top bar panel with the zombies' current tech state.\nBasic: bars for how fast wrecks rise and how fast zombie labs build.\nAdvanced: adds the tech estimate and the numbers.",
+			description = "Top bar panel with the zombies' current tech state.\nBasic: a bar for how fast zombie labs build.\nAdvanced: adds the tech estimate and the numbers.\nDrag the panel to move it.",
 			type = "select",
 			options = PANEL_MODES,
 			value = panelModeIndex(),
@@ -529,7 +533,7 @@ function widget:Initialize()
 	end
 
 	registerOptions()
-	readRespawnDelayClamps()
+	readHeapDelayMultiplier()
 
 	-- corpses found at game start were queued this frame, so their delay is
 	-- exact too; after a mid-game /luaui reload it is unknown -> no prediction
@@ -589,6 +593,7 @@ function widget:DrawWorld()
 				end
 				local remainingFrames = spawnFrame - frame
 				if remainingFrames >= 0 then
+					remainingFrames = remainingFrames + (data.wreckDelayFrames or 0)
 					local remainingSec = floor(remainingFrames / gameSpeed)
 					text = getDisplayText(data, remainingSec)
 
@@ -631,7 +636,7 @@ function widget:Shutdown()
 end
 
 function widget:GetConfigData()
-	return { panelUserPos = panelUserPos, panelMode = panelMode }
+	return { panelUserPos = panelUserPos, panelMode = panelMode, configVersion = CONFIG_VERSION }
 end
 
 function widget:SetConfigData(data)
@@ -640,6 +645,9 @@ function widget:SetConfigData(data)
 		panelUserPos = { pos[1], pos[2] }
 	end
 	local mode = data and data.panelMode
+	if mode == "Basic" and not data.configVersion then
+		mode = nil
+	end
 	for i = 1, #PANEL_MODES do
 		if PANEL_MODES[i] == mode then
 			panelMode = mode
@@ -656,8 +664,7 @@ function widget:MousePress(mx, my, button)
 	if button ~= 1 or spIsGUIHidden() or not panelShown() then
 		return false
 	end
-	local _, ctrl = Spring.GetModKeyState()
-	if ctrl and mx >= panel.x and mx <= panel.x + panel.w and my >= panel.y and my <= panel.y + panel.h then
+	if mx >= panel.x and mx <= panel.x + panel.w and my >= panel.y and my <= panel.y + panel.h then
 		panelDrag = { mx - panel.x, my - panel.y }
 		return true
 	end
